@@ -14,7 +14,7 @@ your backend. The AI agent should then open a PR fixing `src/utils.py`.
    - `WEBHOOK_URL`    = `https://<your-backend-or-ngrok-url>/webhook`
    - `WEBHOOK_SECRET` = same value as `WEBHOOK_SECRET` in the backend `.env`
 3. Make sure the backend is running and `GITHUB_TOKEN` in its `.env` can write to this repo.
-4. Push to `main` (or re-run the CI workflow). CI fails -> webhook fires -> PR appears.
+4. Push to `main`, or open/update a same-repository pull request targeting `main`. If CI fails, the notifier sends the failing commit to the backend. For PR failures, a repair PR targets that PR's source branch so you can merge the fix into the original PR. Fork PR failures are not forwarded.
 
 ## Run tests locally
 
