@@ -15,7 +15,8 @@ jobs:
       !startsWith(github.event.workflow_run.head_branch, 'prpatch/') &&
       (github.event.workflow_run.event == 'push' ||
       (github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.pull_requests[0].base.ref == 'main' &&
+      github.event.workflow_run.pull_requests[0].head.sha != '' &&
+      github.event.workflow_run.pull_requests[0].head.ref != '' &&
       github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     steps:
@@ -36,9 +37,9 @@ jobs:
              {
                repo: $repo,
                run_id: ($run.id | tostring),
-               branch: (if $run.event == "pull_request" then ($pr.head.ref // $run.head_branch) else $run.head_branch end),
-               head_sha: (if $run.event == "pull_request" then ($pr.head.sha // $run.head_sha) else $run.head_sha end),
-               target_branch: (if $run.event == "pull_request" then ($pr.head.ref // $run.head_branch) else $run.head_branch end)
+               branch: (if $run.event == "pull_request" then $pr.head.ref else $run.head_branch end),
+               head_sha: (if $run.event == "pull_request" then $pr.head.sha else $run.head_sha end),
+               target_branch: (if $run.event == "pull_request" then $pr.head.ref else $run.head_branch end)
              }' "$GITHUB_EVENT_PATH")"
 
           curl --fail --show-error --silent \
