@@ -1,0 +1,44 @@
+name: Notify self-healing backend
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send failed run to backend
+        env:
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test -n "$WEBHOOK_URL" || { echo "WEBHOOK_URL secret is missing"; exit 1; }
+          test -n "$WEBHOOK_SECRET" || { echo "WEBHOOK_SECRET secret is missing"; exit 1; }
+
+          payload="$(jq -n \
+            --arg repo "$REPOSITORY" \
+            --arg run_id "$RUN_ID" \
+            --arg branch "$BRANCH" \
+            --arg head_sha "$HEAD_SHA" \
+            '{repo: $repo, run_id: $run_id, branch: $branch, head_sha: $head_sha}')"
+
+          curl --fail --show-error --silent \
+            --retry 3 --retry-delay 2 \
+            --request POST "$WEBHOOK_URL" \
+            --header "Authorization: Bearer $WEBHOOK_SECRET" \
+            --header "Content-Type: application/json" \
+            --data "$payload"
